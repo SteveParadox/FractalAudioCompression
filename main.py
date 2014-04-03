@@ -3,6 +3,45 @@
 import os,sys,wave
 
 
+class Block:
+
+	def __init__(self, frame):
+		self.data = frame
+
+	def voiced_or_not(self,last,curr,next):
+		if last != curr or next !=curr:
+			self.voiced=1
+		else:
+			self.voiced=0
+
+
+def range_pool(frames,num,size,r):
+	for i in range(1,num):
+		r.append([])
+		for j in range(1,size):
+			if frames[(i-1)*size+j].voiced == 1:
+				r[i].append(frames[(i-1)*size+j].data)
+
+def domain_pool(frames,num,d):
+	size=num/2-1
+	for pd in range(0,size):
+		pr=pd+pd
+		d.append(frames[pr].data)
+
+def compute_average_range(r):
+	return rb
+
+def compute_average_domain(d):
+	return db
+
+def compute_variance_range(r,rb):
+	return sr2
+
+def compute_variance_domain(d,db):
+	return sd2
+
+
+
 def main():
 	try:
 		inputfile = sys.argv[1]
@@ -62,20 +101,35 @@ def main():
 	print num
 	print ip.getframerate()
 
-	for i in range(ip.getnframes()):
-		op.writeframes(ip.readframes(1))
-	
+	frames=[]
+	for i in range(num):
+		# op.writeframes(ip.readframes(1))
+		frame=Block(ip.readframes(1))
+		# print frame.data , frame.voiced
+		frames.append(frame)
+
+	last=frames[0]
+	curr=frames[0]
+	for next in frames:
+		curr.voiced_or_not(last,curr,next)
+		last=curr
+		curr=next
+
+	r=[]
+	d=[]
+	range_pool(frames,num,1,r)
+	domain_pool(frames,num,d)
+
+	for frame in frames:
+		print frame.data, frame.voiced
 	ip.close()
 	op.close()
 		
-		
-		
-		
-		
-		
-		
-#    	while byte:
-	#       	byte = ip.read(1)
+
+
+
+
+
 
 if  __name__ =='__main__':main()
 
