@@ -1,12 +1,17 @@
 #!usr/bin/python
 # @author Mayank Gupta
-import os,sys,wave
+import os,sys,wave,struct
 
 
 class Block:
 
 	def __init__(self, frame):
-		self.data = frame
+		# print "len"
+		# print len(frame)
+		# print frame
+		# self.data = struct.unpack("BH", frame)
+		self.data=float(ord(frame))
+		self.voiced=0
 
 	def voiced_or_not(self,last,curr,next):
 		if last != curr or next !=curr:
@@ -16,28 +21,52 @@ class Block:
 
 
 def range_pool(frames,num,size,r):
-	for i in range(1,num):
+	for i in range(num):
 		r.append([])
-		for j in range(1,size):
-			if frames[(i-1)*size+j].voiced == 1:
-				r[i].append(frames[(i-1)*size+j].data)
+		for j in range(size):
+			if frames[(i)*size+j].voiced == 1:
+				# print frames[(i)*size+j].data
+				r[i].append(frames[(i)*size+j].data)
 
 def domain_pool(frames,num,d):
 	size=num/2-1
-	for pd in range(0,size):
+	for pd in range(size):
 		pr=pd+pd
-		d.append(frames[pr].data)
+		d.append((frames[pr].data + frames[pr+1].data)/2)
 
 def compute_average_range(r):
+	rb=0.0
+	m=float(len(r))
+	for x in r:
+		for y in x:
+			rb = rb + y/m
+	# print rb
 	return rb
 
 def compute_average_domain(d):
+	db=0.0
+	m=float(len(d))
+	for x in d:
+		db = db + x/m
+	print db
 	return db
 
 def compute_variance_range(r,rb):
+	sr2=0.0
+	m=float(len(r))
+	for x in r:
+		for y in x:
+			sr2 = sr2 + (y*y)/m
+	# print sr2
 	return sr2
 
 def compute_variance_domain(d,db):
+	sd2=0.0
+	m=float(len(d))
+	for x in d:
+		sd2 = sd2 + (x*x)/m
+	sd2 = sd2 - (db*db)
+	print sd2
 	return sd2
 
 
@@ -97,15 +126,15 @@ def main():
 	width=ip.getsampwidth()
 	num=ip.getnframes()
 
-	print width
-	print num
-	print ip.getframerate()
+	# print width
+	# print num
+	# print ip.getframerate()
 
 	frames=[]
 	for i in range(num):
 		# op.writeframes(ip.readframes(1))
 		frame=Block(ip.readframes(1))
-		# print frame.data , frame.voiced
+		# print frame.data
 		frames.append(frame)
 
 	last=frames[0]
@@ -119,9 +148,13 @@ def main():
 	d=[]
 	range_pool(frames,num,1,r)
 	domain_pool(frames,num,d)
+	rb = compute_average_range(r)
+	db = compute_average_domain(d)
+	sr2 = compute_variance_range(r,rb)
+	dr2 = compute_variance_domain(d,db)
 
-	for frame in frames:
-		print frame.data, frame.voiced
+	# for frame in frames:
+		# print frame.data, frame.voiced
 	ip.close()
 	op.close()
 		
