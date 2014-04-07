@@ -1,15 +1,13 @@
 #!usr/bin/python
 # @author Mayank Gupta
 import os,sys,wave,struct
+from collections import OrderedDict
+import binascii
 
 
 class Block:
 
 	def __init__(self, frame):
-		# print "len"
-		# print len(frame)
-		# print frame
-		# self.data = struct.unpack("BH", frame)
 		self.data=int(ord(frame))
 		self.voiced=0
 
@@ -39,7 +37,6 @@ def compute_average_range(r):
 	m=float(len(r))
 	for x in r:
 		rb = rb + x/m
-	# print rb
 	return int(rb)
 
 def compute_average_domain(d):
@@ -47,7 +44,6 @@ def compute_average_domain(d):
 	m=float(len(d))
 	for x in d:
 		db = db + x/m
-	# print db
 	return int(db)
 
 def compute_variance_range(r,rb):
@@ -55,7 +51,6 @@ def compute_variance_range(r,rb):
 	m=float(len(r))
 	for x in r:
 		sr2 = sr2 + (x*x)/m
-	# print sr2
 	return int(sr2)
 
 def compute_variance_domain(d,db):
@@ -64,7 +59,6 @@ def compute_variance_domain(d,db):
 	for x in d:
 		sd2 = sd2 + (x*x)/m
 	sd2 = sd2 - (db*db)
-	# print sd2
 	return int(sd2)
 
 def compute_scale(db,rb,sd2,m,srd):
@@ -101,31 +95,28 @@ def main():
 		tile_size = int(sys.argv[3])
 	except:
 		inputfile='input.wav'
-		outputfile='output.wav'
+		outputfile='output.wavc'
 		tile_size = 512
 		
 	ip = wave.open(inputfile, 'r')
-	op = wave.open(outputfile, 'w')
-	op.setnchannels(ip.getnchannels())
-	op.setsampwidth(ip.getsampwidth())
-	op.setframerate(ip.getframerate())
-	op.setnframes(ip.getnframes())
-	op2 = open('o.txt','w')
-	
+	op = open(outputfile, 'w')
+	op.write('This wave file has been compressed using fractal compression\n')
+	op.write('Number of channels = ' + str(ip.getnchannels()) + "\n")
+	op.write('Sample width = ' + str(ip.getsampwidth()) + "\n")
+	op.write('Number of frames = ' + str(ip.getnframes()) + "\n")
+	op.write('Frame rate = ' + str(ip.getframerate()) + "\n")
+	op.write('Number of channels = ' + str(ip.getnchannels()) + "\n")
+
 	width=ip.getsampwidth()
 	num=ip.getnframes()
-	range_size = tile_size/8
+
+	range_size = tile_size/16
 	tile_to_range = tile_size/(2*range_size)
-	jump_step = tile_to_range/4
-	# print width
-	# print num
-	# print ip.getframerate()
+	jump_step = tile_to_range/8
 
 	frames=[]
 	for i in range(num):
-		# op.writeframes(ip.readframes(1))
 		frame=Block(ip.readframes(1))
-		# print frame.data
 		frames.append(frame)
 
 	last=frames[0]
@@ -145,9 +136,9 @@ def main():
 	for d in range(len(dp)):
 		db.append(compute_average_domain(dp[d]))
 		sd2.append(compute_variance_domain(dp[d],db[d]))
-		# print str(db[d]) + " " + str(sd2[d])
 
 	ifs_list = []
+	domain_used = OrderedDict()
 	for r in range(len(rp)):
 		rb = compute_average_range(rp[r])
 		sr2 = compute_variance_range(rp[r],rb)
@@ -167,20 +158,24 @@ def main():
 					if minerror > chi:
 						minerror = chi
 						ifs.ifs_set(s,d,rb,j)
+		domain_used[ifs.position] = True
 		ifs_list.append(ifs)
 
+	domain_used=sorted(domain_used)
+	op.write('No. of Domains= ' + str(len(domain_used)) + '\n')
+	for d in domain_used:
+		op.write('Domain no. = ' + str(d) + '\n')
+		op.write('Domain = ')
+		for i in dp[d]:
+			op.write(binascii.b2a_hex(chr(i)) + ' ')
+		op.write('\n')
 
-	print len(rp)
-	print len(ifs_list)
-	print len(dp)
+	op.write('Scale\tPosition\tMean\tSym\n')
 	for ifs in ifs_list:
-		# print ifs.scale, ifs.position, ifs.mean, ifs.sym
-		op2.write(str(ifs.scale)  + " " + str(ifs.position) + " "  + str(ifs.mean) + " " + str(ifs.sym) + "\n")
-	# for frame in frames:
-	# print frame.data, frame.voiced
-	
+		op.write(str(ifs.scale)  + "\t\t" + str(ifs.position) + "\t\t\t"  + str(ifs.mean) + "\t\t" + str(ifs.sym) + "\n")
+
+	print 'Compression ratio = ' + str( 2.0 * num / (len(domain_used) * tile_size))
 	ip.close()
 	op.close()
-	op2.close()
 
 if  __name__ =='__main__':main()
