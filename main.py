@@ -114,15 +114,13 @@ def compute_chi(sr2,s,sd2,db,rb,m,srd):#computes error (chi)
 def main():#main function
 	try:
 		inputfile = sys.argv[1]#input file
-		outputfile = sys.argv[2]#output file
-		tile_size = int(sys.argv[3])#tile size
+		tile_size = int(sys.argv[2])#tile size
 	except:
-		inputfile='input.wav'#input file
-		outputfile='output.wavc'#output file
-		tile_size = 512#tile size
+		print 'python [scriptfile] [inputfile] tile_size'
+		return
 		
 	ip = wave.open(inputfile, 'r')#open input file
-	op = open(outputfile, 'w')#open output file
+	op = open(inputfile.split('.')[0] + '.wavc', 'w')#open output file
 	op.write('This wave file has been compressed using fractal compression\n')
 	op.write('Number of channels = ' + str(ip.getnchannels()) + "\n")
 	op.write('Sample width = ' + str(ip.getsampwidth()) + "\n")
@@ -200,6 +198,7 @@ def main():#main function
 		op.write(str(ifs.scale)  + "\t\t" + str(ifs.position) + "\t\t\t"  + str(ifs.mean) + "\t\t" + str(ifs.sym) + "\n")#store ifs in output file
 
 	print 'Compression ratio = ' + str( 2.0 * num / (len(domain_used) * tile_size))#calculate compression ratio
+	print 'Output file = ' + inputfile.split('.')[0] + '.wavc\n'
 	ip.close()
 	op.close()
 
